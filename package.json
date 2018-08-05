@@ -1,0 +1,49 @@
+{
+  "name": "saavn-to-gaana",
+  "version": "0.0.1",
+  "description": "Saavn to Gaana converter",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gyandeeps/saavn-to-gaana.git"
+  },
+  "author": "Gyandeep Singh <gyandeeps@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gyandeeps/saavn-to-gaana/issues"
+  },
+  "homepage": "https://github.com/gyandeeps/saavn-to-gaana#readme",
+  "dependencies": {
+    "puppeteer": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^10.5.6",
+    "@types/puppeteer": "^1.6.0",
+    "prettier": "^1.14.0",
+    "typescript": "^3.0.1"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "tabWidth": 4,
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "none",
+    "bracketSpacing": true,
+    "arrowParens": "always",
+    "overrides": [
+      {
+        "files": "package.json",
+        "options": {
+          "tabWidth": 2,
+          "printWidth": 250
+        }
+      }
+    ]
+  }
+}
