@@ -23,9 +23,9 @@
     "puppeteer": "^1.6.2"
   },
   "devDependencies": {
-    "@types/node": "^10.5.6",
+    "@types/node": "^10.5.7",
     "@types/puppeteer": "^1.6.0",
-    "prettier": "^1.14.0",
+    "prettier": "^1.14.1",
     "typescript": "^3.0.1"
   },
   "prettier": {

@@ -8,6 +8,8 @@ const enum ErrorStates {
 type SongDetails = {
     name: string;
     singer: string;
+    album: string;
+    year: number;
 };
 type SongList = SongDetails[];
 
@@ -58,15 +60,24 @@ const saavn = async (
 
     const songList: SongList = await page.evaluate(() => {
         const songElements = document.querySelectorAll<HTMLElement>(
-            ".page-group.track-list > li .meta"
+            ".page-group.track-list > li"
         );
 
         return Array.from(songElements)
-            .map((elem) => elem.querySelectorAll<HTMLLinkElement>("a"))
             .map((elem) => ({
-                name: elem[0].innerText,
-                singer: elem[1].innerText
-            }));
+                meta: elem.querySelectorAll<HTMLLinkElement>(
+                    ".main > .meta > a"
+                ),
+                title: elem.querySelector<HTMLLinkElement>(".main > .title > a")
+            }))
+            .map(
+                ({ meta, title }): SongDetails => ({
+                    name: (title && title.innerText) || "",
+                    album: meta[0].innerText,
+                    singer: meta[1].innerText,
+                    year: parseInt(meta[2].innerText, 10)
+                })
+            );
     });
 
     return songList;
@@ -94,24 +105,22 @@ const gaana = async (
     await page.goto("https://gaana.com/music");
     await page.waitForSelector(".mymsc > .createplaylist");
     await page.waitFor(3000);
-    // await page.waitForSelector(".mymsc > .createplaylist > a", {
-    //     visible: true
-    // });
-    // await page.waitFor(1000);
-    // await page.click(".mymsc > .createplaylist > a");
-    // await page.waitFor(3000);
-    // await page.click(".mymsc > .createplaylist > a");
-    // await page.waitFor(3000);
-    // await page.waitForSelector("#playlist_name", { visible: true });
-    // await page.waitFor(3000);
-    // await page.type("#playlist_name", playlistName);
-    // await page.waitForSelector(".following > .createplaylist > svg", {
-    //     visible: true
-    // });
-    // await page.click(".following > .createplaylist > svg");
+    await page.waitForSelector(".mymsc > .createplaylist > a", {
+        visible: true
+    });
+    await page.waitFor(1000);
+    await page.click(".mymsc > .createplaylist > a");
     await page.waitFor(3000);
-
-    // gyandeeps@gmail.com
+    await page.click(".mymsc > .createplaylist > a");
+    await page.waitFor(3000);
+    await page.waitForSelector("#playlist_name", { visible: true });
+    await page.waitFor(3000);
+    await page.type("#playlist_name", playlistName);
+    await page.waitForSelector(".following > .createplaylist > svg", {
+        visible: true
+    });
+    await page.click(".following > .createplaylist > svg");
+    await page.waitFor(3000);
 
     await page.waitForSelector("._mymusic .card_layout .carousel_ul");
 
@@ -135,8 +144,6 @@ const gaana = async (
                 }));
         });
 
-        console.log(suggestionList);
-
         for (const suggestion of suggestionList) {
             const songPage = await browser.newPage();
 
@@ -147,29 +154,34 @@ const gaana = async (
                 ".details-list-paddingnone.content-container.albumlist"
             );
 
-            const addToPlaylistClicked: boolean = await page.evaluate(
-                (trackId, artistName) => {
+            const addToPlaylistClicked: boolean = await songPage.evaluate(
+                (trackId, artistName, albumName) => {
                     const songElements = document.querySelector<HTMLElement>(
                         `li[data-value="song${trackId}"]`
                     );
 
                     if (songElements) {
-                        const artistItem = songElements.querySelector<
+                        const infoItem = songElements.querySelector<
                             HTMLElement
-                        >(".s_artist.desktop > div > a");
+                        >(`#parent-row-song${trackId}`);
 
-                        if (
-                            artistItem &&
-                            artistItem.title.toLowerCase() ===
-                                artistName.toLowerCase()
-                        ) {
-                            const addToPlaylistItem = songElements.querySelector<
-                                HTMLElement
-                            >(".queue-addplaylisticon");
+                        if (infoItem) {
+                            const info = JSON.parse(infoItem.innerText);
+                            if (
+                                info &&
+                                info.artist.toLowerCase().split("###")[0] ===
+                                    artistName.toLowerCase() &&
+                                info.albumtitle.toLowerCase() ===
+                                    albumName.toLowerCase()
+                            ) {
+                                const addToPlaylistItem = songElements.querySelector<
+                                    HTMLElement
+                                >(".queue-addplaylisticon");
 
-                            if (addToPlaylistItem) {
-                                addToPlaylistItem.click();
-                                return true;
+                                if (addToPlaylistItem) {
+                                    addToPlaylistItem.click();
+                                    return true;
+                                }
                             }
                         }
                     }
@@ -177,15 +189,18 @@ const gaana = async (
                     return false;
                 },
                 suggestion.trackId,
-                songItem.singer
+                songItem.singer,
+                songItem.album
             );
 
             console.log(`${suggestion.url} - ${addToPlaylistClicked}`);
 
             if (addToPlaylistClicked) {
-                await songPage.waitForSelector(".follow_inner.addedplaylist");
+                await songPage.waitForSelector(".follow_inner.addedplaylist", {
+                    visible: true
+                });
 
-                await page.evaluate((listName) => {
+                const isAdded = await songPage.evaluate((listName) => {
                     const listElements = document.querySelectorAll<HTMLElement>(
                         "a.playlistname"
                     );
@@ -201,6 +216,8 @@ const gaana = async (
 
                     return false;
                 }, playlistName);
+
+                console.log(`Added ${suggestion.url} - ${isAdded}`);
             }
 
             songPage.close();
@@ -217,19 +234,23 @@ const gaana = async (
     const playListName = "punjabi";
 
     try {
-        // const songList = await saavn(browser, playListName);
+        const songList = await saavn(browser, playListName);
 
-        // console.log(songList);
-        await gaana(browser, playListName, [
-            {
-                name: "high end",
-                singer: "Diljit Dosanjh"
-            },
-            {
-                name: "high rated gabru",
-                singer: "Guru Randhawa"
-            }
-        ]);
+        // const mockList = [
+        //     {
+        //         name: "high end",
+        //         singer: "Diljit Dosanjh",
+        //         year: 2018,
+        //         album: "Con.Fi.Den.Tial"
+        //     },
+        //     {
+        //         name: "high rated gabru",
+        //         singer: "Guru Randhawa",
+        //         year: 2017,
+        //         album: "high rated gabru"
+        //     }
+        // ];
+        await gaana(browser, playListName, songList);
     } catch (e) {
         console.error(e);
     }
