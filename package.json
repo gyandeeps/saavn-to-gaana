@@ -20,12 +20,12 @@
   },
   "homepage": "https://github.com/gyandeeps/saavn-to-gaana#readme",
   "dependencies": {
-    "puppeteer": "^1.6.2"
+    "puppeteer": "^1.7.0"
   },
   "devDependencies": {
-    "@types/node": "^10.5.7",
+    "@types/node": "^10.7.1",
     "@types/puppeteer": "^1.6.0",
-    "prettier": "^1.14.1",
+    "prettier": "^1.14.2",
     "typescript": "^3.0.1"
   },
   "prettier": {

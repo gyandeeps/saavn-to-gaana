@@ -1,4 +1,4 @@
-Saavn to Gaana coverter
+Saavn to Gaana converter
 ==============================
 
 

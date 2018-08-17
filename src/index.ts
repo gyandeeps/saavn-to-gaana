@@ -27,7 +27,13 @@ const saavn = async (
     const page = await browser.newPage();
 
     await page.goto("https://www.saavn.com/login.php?action=login");
-    await page.waitForSelector("#account .user-name");
+    await page.setViewport({
+        height: 768,
+        width: 1200
+    });
+    await page.waitForSelector("#account .user-name", {
+        timeout: 0
+    });
     await page.waitForSelector("#my-music .drop .drop-scroll a");
 
     const playlistUrl: string = await page.evaluate((nameToLook: string) => {
@@ -72,13 +78,14 @@ const saavn = async (
             }))
             .map(
                 ({ meta, title }): SongDetails => ({
-                    name: (title && title.innerText) || "",
+                    name: (title && title.innerText.split("(")[0]) || "",
                     album: meta[0].innerText,
                     singer: meta[1].innerText,
                     year: parseInt(meta[2].innerText, 10)
                 })
             );
     });
+    page.close();
 
     return songList;
 };
@@ -127,9 +134,19 @@ const gaana = async (
     for (const songItem of songList) {
         const songUrl = `${searchUrl}/${escape(songItem.name)}`;
         console.log(songUrl);
-        await page.goto(songUrl);
+        await page.goto(songUrl, {
+            timeout: 0,
+            waitUntil: "domcontentloaded"
+        });
         await page.waitFor(3000);
-        await page.waitForSelector(".search-box .songlist-type2");
+
+        try {
+            await page.waitForSelector(".search-box .songlist-type2");
+        } catch (e) {
+            // search page invalid or something... ignore and continue
+            console.log(`${songItem.name} - no search available`);
+            continue;
+        }
 
         const suggestionList: SuggestionList = await page.evaluate(() => {
             const songElements = document.querySelectorAll<HTMLElement>(
@@ -148,10 +165,21 @@ const gaana = async (
             const songPage = await browser.newPage();
 
             await songPage.goto(
-                `https://gaana.com${suggestion.url.replace("\\", "")}`
+                `https://gaana.com${suggestion.url.replace("\\", "")}`,
+                {
+                    timeout: 0,
+                    waitUntil: "domcontentloaded"
+                }
             );
+            await page.setViewport({
+                height: 768,
+                width: 1200
+            });
             await songPage.waitForSelector(
-                ".details-list-paddingnone.content-container.albumlist"
+                ".details-list-paddingnone.content-container.albumlist",
+                {
+                    visible: true
+                }
             );
 
             const addToPlaylistClicked: boolean = await songPage.evaluate(
@@ -218,6 +246,10 @@ const gaana = async (
                 }, playlistName);
 
                 console.log(`Added ${suggestion.url} - ${isAdded}`);
+                if (isAdded) {
+                    songPage.close();
+                    break;
+                }
             }
 
             songPage.close();
